@@ -1,0 +1,68 @@
+{
+  "name": "groove-grammar-lab",
+  "version": "1.0.0",
+  "description": "Educational drum machine for phrase-aware rhythm study",
+  "author": "Groove Grammar Lab",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "generate-icon": "node scripts/generate-icon.mjs",
+    "dist": "npm run generate-icon && electron-builder",
+    "dist:dir": "electron-builder --dir",
+    "tauri": "node node_modules/@tauri-apps/cli/tauri.js",
+    "tauri:icons": "npm run generate-icon && node node_modules/@tauri-apps/cli/tauri.js icon resources/icon.png",
+    "tauri:build": "node node_modules/@tauri-apps/cli/tauri.js build",
+    "web:assets": "node scripts/generate-web-assets.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "ua.groovegrammarlab.app",
+    "productName": "Groove Grammar Lab",
+    "copyright": "Copyright © 2026",
+    "asar": true,
+    "compression": "maximum",
+    "electronLanguages": ["en-US"],
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "index.html",
+      "app.js",
+      "styles.css",
+      "electron/**/*",
+      "resources/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "resources/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Groove Grammar Lab",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "${productName} Setup ${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName} ${version} Portable.${ext}"
+    }
+  }
+}
