@@ -3,12 +3,11 @@ release/
 dist-web/
 _site/
 
-# Generated icons and images (created by generate-icon.mjs / generate-web-assets.mjs)
+# Electron/Tauri build icon (regenerated at build time)
 resources/icon.png
-favicon-32.png
-favicon-192.png
-favicon-512.png
-og-image.png
+
+# NOTE: favicon-*.png and og-image.png ARE committed so GitHub Pages can serve
+# them directly when deploying from a branch (no CI generation step required).
 
 # Tauri build output
 src-tauri/target/
