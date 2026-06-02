@@ -150,40 +150,77 @@ function snare() {
 }
 
 /* ── Hi-hat core  ───────────────────────────────────────────────────────────
-   6 square-wave oscillators at metallic frequency ratios (TR-808 inspired).
-   Anti-aliasing via tanh clipping. Shaped by HP + LP filters.
-   `decayTau`  controls ring length; open hat uses a much longer value.      */
+   Realistic hi-hat synthesis combining:
+   • FM cross-modulation between metallic partials (TR-606 / TR-808 approach)
+   • Filtered white noise for the "shhhh" component (cymbal body)
+   • Two-stage envelope: sharp attack click + exponential ring decay
+   • Multi-band shaping (HP @ 7-9 kHz, peak @ 8-10 kHz)
 
-const HAT_FREQS = [516, 583, 705, 1025, 1205, 1800]; // Hz
+   The key insight: real hi-hats are ~70% bright noise, 30% inharmonic metallic
+   ring. Pure oscillator stacks sound like toy chimes, not cymbals.            */
 
-function synthHat(decayTau, durationSec) {
+// Inharmonic ratios from physical cymbal modal analysis (not equal-tempered).
+const HAT_PARTIALS = [1.0, 1.342, 1.781, 2.193, 2.658, 3.187, 3.794, 4.521];
+const HAT_FUNDAMENTAL = 320; // Hz, where the partial series starts
+
+function synthHat(decayTau, durationSec, brightness = 1.0) {
   const s = alloc(durationSec);
-  const hp = biquad("hp", 6800, 0.90);
-  const lp = biquad("lp", 14000, 0.75);
 
-  const phases = HAT_FREQS.map(() => 0);
+  // Noise path: very bright filtered noise — this is the "cymbal shimmer"
+  const noiseHP1 = biquad("hp", 7200, 0.90);
+  const noiseHP2 = biquad("hp", 9500, 1.10);   // dual HP for steeper rolloff
+  const noiseLP  = biquad("lp", 16000, 0.70);
+
+  // Metallic path: inharmonic partials with FM cross-modulation
+  const metallicHP = biquad("hp", 5500, 0.85);
+  const metallicLP = biquad("lp", 12000, 0.75);
+
+  const phases  = HAT_PARTIALS.map(() => Math.random() * Math.PI * 2);
+  const modPhase = [0, 0]; // FM modulators
+
   for (let i = 0; i < s.length; i++) {
     const t = i / SR;
-    const rise = t < 0.002 ? t / 0.002 : 1;
-    const env  = rise * Math.exp(-t / decayTau);
 
-    let mix = 0;
-    for (let k = 0; k < HAT_FREQS.length; k++) {
-      phases[k] += (2 * Math.PI * HAT_FREQS[k]) / SR;
-      // Soft-clipped square wave (tanh) to limit harmonics and reduce aliasing
-      mix += Math.tanh(3.2 * Math.sin(phases[k]));
+    // Attack curve: sharp 1ms rise
+    const rise = t < 0.001 ? t / 0.001 : 1;
+
+    // Two-phase envelope: instant peak that drops to body level in 4ms,
+    // then exponential decay. This matches real cymbal physics.
+    const attackBoost = 1 + 1.8 * Math.exp(-t / 0.004);
+    const body = Math.exp(-t / decayTau);
+    const env = rise * body * attackBoost;
+
+    // FM modulators (slow, deep) — gives the "metallic shimmer"
+    modPhase[0] += (2 * Math.PI * 187) / SR;
+    modPhase[1] += (2 * Math.PI * 251) / SR;
+    const fm = Math.sin(modPhase[0]) * 0.6 + Math.sin(modPhase[1]) * 0.4;
+    const fmDepth = 24 * Math.exp(-t / 0.05); // FM index drops fast
+
+    // Metallic partials — inharmonic, FM-modulated
+    let metallic = 0;
+    for (let k = 0; k < HAT_PARTIALS.length; k++) {
+      const f = HAT_FUNDAMENTAL * HAT_PARTIALS[k] * brightness;
+      phases[k] += (2 * Math.PI * f) / SR;
+      metallic += Math.sin(phases[k] + fm * fmDepth);
     }
-    mix /= HAT_FREQS.length;
-    s[i] = lp(hp(mix)) * env;
+    metallic = metallicLP(metallicHP(metallic / HAT_PARTIALS.length));
+
+    // Noise — the dominant "shhhh" component
+    const rawNoise = Math.random() * 2 - 1;
+    const noise = noiseLP(noiseHP2(noiseHP1(rawNoise)));
+
+    // Mix: 65% noise + 35% metallic ring — this ratio is what makes it sound
+    // like a cymbal rather than a tonal instrument.
+    s[i] = (noise * 0.65 + metallic * 0.35) * env;
   }
-  return normalize(fadeOut(s, 6));
+  return normalize(fadeOut(s, 8));
 }
 
-// Closed hat: fast 80 ms ring
-const closedHat = () => synthHat(0.013, 0.10);
+// Closed hat: very short decay, slightly brighter (tightly choked cymbal)
+const closedHat = () => synthHat(0.018, 0.10, 1.08);
 
-// Open hat: slow 750 ms ring — plenty of sustain for the choke to be clearly audible
-const openHat = () => synthHat(0.22, 0.78);
+// Open hat: long ring, default brightness — choke from closed hat is very audible
+const openHat = () => synthHat(0.28, 0.85, 1.0);
 
 /* ── Rim shot  ──────────────────────────────────────────────────────────────
    Noise burst + 1600 Hz resonant tone, very short and punchy.               */
