@@ -1368,6 +1368,53 @@ Object.assign(STYLE_LIBRARY, {
   }
 });
 
+// Reasonable region defaults for built-in styles (used only when a style omits one).
+const FAMILY_REGIONS = {
+  "Clave and African diaspora": "Afro-Caribbean",
+  "European dance": "Europe",
+  "American groove": "United States",
+  "Electronic": "Global",
+  "Breakbeat lineage": "United Kingdom",
+  "Caribbean": "Caribbean",
+  "Duple meter": "Europe",
+  "Triple meter": "Europe",
+  "Latin American": "Latin America",
+  "Balkan & aksak": "Balkans",
+  "Compound meter": "Global",
+  "Odd meter": "Balkans",
+  "Indian classical": "India",
+  "West African": "West Africa"
+};
+
+// Merges window.EXTRA_RHYTHMS (from rhythm-packs.js) into STYLE_LIBRARY, then
+// backfills region/difficulty defaults so every style is safe to display.
+function mergeExternalRhythmPacks() {
+  const external = (typeof window !== "undefined" && window.EXTRA_RHYTHMS)
+    ? window.EXTRA_RHYTHMS
+    : (typeof globalThis !== "undefined" && globalThis.EXTRA_RHYTHMS) || {};
+  Object.entries(external).forEach(([key, style]) => {
+    STYLE_LIBRARY[key] = {
+      region: "Global",
+      difficulty: "medium",
+      ...style,
+      meter: style.meter || "4-4",
+      tags: style.tags || [],
+      principles: style.principles || []
+    };
+  });
+  // Backfill defaults on every style (covers built-ins that predate these fields).
+  Object.values(STYLE_LIBRARY).forEach((style) => {
+    if (!style.meter) style.meter = "4-4";
+    if (!style.region) style.region = FAMILY_REGIONS[style.family] || "Global";
+    if (!style.difficulty) {
+      const odd = /[57]|11|13/.test(style.meter);
+      style.difficulty = odd ? "advanced" : "medium";
+    }
+  });
+}
+
+mergeExternalRhythmPacks();
+
 const PRESET_KEY = "ggl.presets.v1";
 
 const state = {
@@ -1742,8 +1789,10 @@ function renderStyleInfo(pattern) {
     <strong>${style.name}</strong>
     <p>${style.subtitle}</p>
     <dl>
-      <div><dt>Meter</dt><dd>${pattern.meter.label}</dd></div>
+      <div><dt>Meter</dt><dd>${pattern.meter.label} · ${pattern.meter.feel}</dd></div>
       <div><dt>Family</dt><dd>${style.family}</dd></div>
+      <div><dt>Region</dt><dd>${style.region || "Global"}</dd></div>
+      <div><dt>Difficulty</dt><dd>${style.difficulty || "medium"}</dd></div>
       <div><dt>Grouping</dt><dd>${pattern.meter.groupText}</dd></div>
     </dl>
     <div class="affinity-tags">${tags}</div>

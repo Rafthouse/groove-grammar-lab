@@ -12,7 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const out = resolve(root, "dist-web");
 
-const FILES = ["index.html", "styles.css", "app.js"];
+const FILES = ["index.html", "styles.css", "app.js", "rhythm-packs.js"];
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
