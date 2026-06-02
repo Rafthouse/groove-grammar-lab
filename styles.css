@@ -124,6 +124,19 @@ h2 {
   gap: 8px;
 }
 
+.sample-status {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0 6px;
+  align-self: center;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.sample-status[data-state="ready"]   { color: var(--ornament); }
+.sample-status[data-state="partial"] { color: var(--core); }
+.sample-status[data-state="synth"]   { color: var(--muted); }
+
 .primary-button {
   background: var(--core);
   border-color: var(--core);

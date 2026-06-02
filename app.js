@@ -110,6 +110,25 @@ const TRACKS = [
   { id: "shaker", name: "Shaker", sound: "shaker", layer: "texture" }
 ];
 
+// Maps track.sound → relative URL of the corresponding sample file.
+const SAMPLE_MAP = {
+  kick:     "sounds/kick.wav",
+  snare:    "sounds/snare.wav",
+  hat:      "sounds/hihat-closed.wav",
+  openHat:  "sounds/hihat-open.wav",
+  rim:      "sounds/rim.wav",
+  tom:      "sounds/tom.wav",
+  perc:     "sounds/perc.wav",
+  shaker:   "sounds/shaker.wav"
+};
+
+// Instruments in the same choke group cut each other off (MIDI standard behaviour).
+// Closed hat chokes open hat — exactly as hardware drum machines do it.
+const CHOKE_GROUP = {
+  hat:     "hihat",
+  openHat: "hihat"
+};
+
 const STYLE_LIBRARY = {
   afrocuban: {
     name: "Afro-Cuban",
@@ -1365,7 +1384,12 @@ const state = {
   schedStep: 0,
   playheadQueue: [],
   masterVolume: 0.72,
-  mixer: Object.fromEntries(TRACKS.map((track) => [track.id, { volume: 0.85, mute: false, solo: false }]))
+  mixer: Object.fromEntries(TRACKS.map((track) => [track.id, { volume: 0.85, mute: false, solo: false }])),
+  // Sample engine
+  sampleBuffers: {},     // sound → AudioBuffer (live context)
+  sampleRawBuffers: {},  // sound → ArrayBuffer (raw bytes, kept for offline re-decode)
+  samplesReady: false,
+  activeChoke: {}        // groupId → { source, gain } — for choke logic
 };
 
 const els = {
@@ -1384,6 +1408,7 @@ const els = {
   play: document.getElementById("playButton"),
   playIcon: document.getElementById("playIcon"),
   masterVol: document.getElementById("masterRange"),
+  sampleStatus: document.getElementById("sampleStatus"),
   mixer: document.getElementById("mixer"),
   presetSelect: document.getElementById("presetSelect"),
   save: document.getElementById("saveButton"),
@@ -1968,6 +1993,73 @@ function initAudio() {
   buildAudioGraph(state.audio, state.master);
   state.trackGains = state.liveTrackGains;
   applyMixer();
+  // Kick off sample loading in the background; synthesis is the immediate fallback.
+  loadSamples(state.audio).then(updateSampleStatus).catch(() => updateSampleStatus());
+  updateSampleStatus();
+}
+
+// Fetches and decodes all drum samples for the given AudioContext.
+// Keeps raw ArrayBuffers so they can be re-decoded for OfflineAudioContext (WAV export).
+async function loadSamples(ctx) {
+  const entries = Object.entries(SAMPLE_MAP);
+  await Promise.allSettled(entries.map(async ([sound, url]) => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.arrayBuffer();
+    state.sampleRawBuffers[sound] = raw;
+    state.sampleBuffers[sound] = await ctx.decodeAudioData(raw.slice());
+  }));
+  state.samplesReady = Object.keys(state.sampleBuffers).length === entries.length;
+}
+
+function updateSampleStatus() {
+  if (!els.sampleStatus) return;
+  const loaded = Object.keys(state.sampleBuffers).length;
+  const total = Object.keys(SAMPLE_MAP).length;
+  if (loaded === total) {
+    els.sampleStatus.textContent = "● samples";
+    els.sampleStatus.dataset.state = "ready";
+  } else if (loaded > 0) {
+    els.sampleStatus.textContent = `▲ ${loaded}/${total}`;
+    els.sampleStatus.dataset.state = "partial";
+  } else {
+    els.sampleStatus.textContent = "◌ synth";
+    els.sampleStatus.dataset.state = "synth";
+  }
+}
+
+// Plays a drum sound using a pre-loaded sample with choke-group support.
+// Falls back to synthesis if the sample is not yet loaded.
+function playSample(ctx, sound, time, velocity, dest) {
+  const buffer = state.sampleBuffers[sound];
+  if (!buffer) {
+    createVoice(ctx, sound, time, velocity, dest);
+    return;
+  }
+  const group = CHOKE_GROUP[sound];
+  // Cut off any ringing source in the same choke group (e.g. closed hat stops open hat).
+  if (group && state.activeChoke[group]) {
+    const prev = state.activeChoke[group];
+    try {
+      prev.gain.gain.cancelScheduledValues(time);
+      prev.gain.gain.setTargetAtTime(0.0001, time, 0.004);
+    } catch (e) { /* source already ended */ }
+    state.activeChoke[group] = null;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(Math.max(0.0001, velocity), time);
+  src.connect(gain).connect(dest);
+  src.start(time);
+  if (group) {
+    state.activeChoke[group] = { source: src, gain };
+    src.onended = () => {
+      if (state.activeChoke[group] && state.activeChoke[group].source === src) {
+        state.activeChoke[group] = null;
+      }
+    };
+  }
 }
 
 // Builds master -> per-track gain nodes for a context. Returns the track gain map.
@@ -2137,6 +2229,8 @@ function swingOffset(localStep, secondsPerStep, swing) {
 function startPlayback() {
   if (!state.pattern) generate();
   initAudio();
+  // resume() MUST be called synchronously inside the user-gesture handler.
+  // This is the critical requirement for iOS Safari.
   state.audio.resume();
   applyMixer();
   state.isPlaying = true;
@@ -2163,6 +2257,11 @@ function stopPlayback() {
 // using precise AudioContext clock times instead of setTimeout drift.
 function scheduler() {
   if (!state.isPlaying || !state.pattern) return;
+  // Auto-resume if the AudioContext was suspended (common on Android after tab switch).
+  if (state.audio && state.audio.state === "suspended") {
+    state.audio.resume();
+    return; // reschedule on next interval tick once context is running
+  }
   const pattern = state.pattern;
   const secondsPerStep = 60 / pattern.settings.tempo / 4;
   state.schedStep %= pattern.totalSteps; // guard against pattern length changes mid-play
@@ -2182,7 +2281,7 @@ function scheduleStepAt(step, time, secondsPerStep) {
     const track = TRACKS.find((entry) => entry.id === item.track);
     const drift = (Math.random() - 0.5) * (pattern.settings.human / 1000);
     const dest = state.trackGains[item.track] || state.master;
-    createVoice(state.audio, track.sound, time + swing + drift, item.velocity * (item.ghost ? 0.55 : 1), dest);
+    playSample(state.audio, track.sound, time + swing + drift, item.velocity * (item.ghost ? 0.55 : 1), dest);
   });
   state.playheadQueue.push({ step, time });
 }
@@ -2433,11 +2532,31 @@ async function exportWAV() {
   const gains = buildAudioGraph(ctx, master);
   TRACKS.forEach((track) => { gains[track.id].gain.value = trackLevel(track.id); });
 
+  // Re-decode raw sample buffers for the offline context (AudioBuffers are context-specific).
+  const offlineSamples = {};
+  await Promise.allSettled(
+    Object.entries(state.sampleRawBuffers).map(async ([sound, raw]) => {
+      offlineSamples[sound] = await ctx.decodeAudioData(raw.slice());
+    })
+  );
+
   p.events.forEach((item) => {
     const track = TRACKS.find((entry) => entry.id === item.track);
     const local = item.step % p.settings.stepsPerBar;
     const time = item.step * secondsPerStep + swingOffset(local, secondsPerStep, p.settings.swing);
-    createVoice(ctx, track.sound, time, item.velocity * (item.ghost ? 0.55 : 1), gains[item.track]);
+    const vel = item.velocity * (item.ghost ? 0.55 : 1);
+    const dest = gains[item.track];
+    const buf = offlineSamples[track.sound];
+    if (buf) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(Math.max(0.0001, vel), time);
+      src.connect(gain).connect(dest);
+      src.start(time);
+    } else {
+      createVoice(ctx, track.sound, time, vel, dest);
+    }
   });
 
   els.wav.textContent = "Rendering…";
@@ -2521,6 +2640,18 @@ function installHandlers() {
     if (!cell || !cell.dataset.track) return;
     toggleStep(cell.dataset.track, Number(cell.dataset.step));
   });
+  // Mobile: unlock AudioContext on any touch (covers very old iOS and Android Chrome quirks).
+  document.addEventListener("touchstart", () => {
+    if (state.audio && state.audio.state === "suspended") state.audio.resume();
+  }, { passive: true, once: false });
+
+  // Resume AudioContext when the tab regains visibility (e.g. user switches back on Android).
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && state.audio && state.audio.state === "suspended") {
+      state.audio.resume();
+    }
+  });
+
   els.affinityMap.addEventListener("click", (event) => {
     const button = event.target.closest("[data-style]");
     if (!button) return;

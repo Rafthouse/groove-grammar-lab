@@ -13,7 +13,8 @@
     "tauri": "node node_modules/@tauri-apps/cli/tauri.js",
     "tauri:icons": "npm run generate-icon && node node_modules/@tauri-apps/cli/tauri.js icon resources/icon.png",
     "tauri:build": "node node_modules/@tauri-apps/cli/tauri.js build",
-    "web:assets": "node scripts/generate-web-assets.mjs"
+    "web:assets": "node scripts/generate-web-assets.mjs",
+    "sounds:generate": "node scripts/generate-sounds.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
