@@ -1417,6 +1417,19 @@ mergeExternalRhythmPacks();
 
 const PRESET_KEY = "ggl.presets.v1";
 
+// structuredClone is unavailable on Safari < 15.4 / older in-app WebViews.
+// All cloned data here (plain pattern/mixer objects) is JSON-serialisable.
+const deepClone = (typeof structuredClone === "function")
+  ? structuredClone
+  : (obj) => JSON.parse(JSON.stringify(obj));
+
+// Escapes user-supplied text before it goes into an innerHTML template.
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
 const state = {
   pattern: null,
   previousPattern: null,
@@ -1966,7 +1979,7 @@ function updateOutputs() {
 }
 
 function generate(mode = "new") {
-  state.previousPattern = state.pattern ? structuredClone(state.pattern) : null;
+  state.previousPattern = state.pattern ? deepClone(state.pattern) : null;
   state.pattern = createPattern(getSettings(), mode);
   render(state.pattern);
 }
@@ -2033,6 +2046,85 @@ function toggleStep(trackId, step) {
 
 const LOOKAHEAD = 0.12;
 const SCHEDULER_INTERVAL = 25;
+
+/* ---------- iOS / in-app WebView audio unlock ----------
+   Web Audio on iOS runs in the AVAudioSession "ambient" category, which the
+   hardware ring/silent switch mutes — this is why sound is dead when the page
+   is opened from the Telegram in-app browser (a WKWebView) with the switch on.
+   Playing a silent <audio> element (and, on iOS 17+, setting
+   navigator.audioSession.type) flips the session to "playback" so Web Audio is
+   audible regardless of the mute switch. Must run inside a user gesture. */
+let silentAudioEl = null;
+let audioSessionPrimed = false;
+
+// Builds a short, real (non-empty) silent WAV as a data URI — an empty/0-frame
+// clip can fail to start on some engines and defeat the unlock.
+function buildSilentWavDataUri(seconds = 0.2, sampleRate = 8000) {
+  const frames = Math.floor(seconds * sampleRate);
+  const buf = new ArrayBuffer(44 + frames * 2);
+  const dv = new DataView(buf);
+  const tag = (off, s) => { for (let i = 0; i < s.length; i += 1) dv.setUint8(off + i, s.charCodeAt(i)); };
+  tag(0, "RIFF"); dv.setUint32(4, 36 + frames * 2, true); tag(8, "WAVE");
+  tag(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, 1, true); dv.setUint32(24, sampleRate, true);
+  dv.setUint32(28, sampleRate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  tag(36, "data"); dv.setUint32(40, frames * 2, true); // sample bytes are already zero => silence
+  let bin = "";
+  const u8 = new Uint8Array(buf);
+  for (let i = 0; i < u8.length; i += 1) bin += String.fromCharCode(u8[i]);
+  return "data:audio/wav;base64," + btoa(bin);
+}
+
+// Flips the iOS audio session out of the mute-switch-gated "ambient" category.
+// Idempotent and a safe no-op on engines that don't need it.
+function primeAudioSession() {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = "playback"; // iOS 17+
+  } catch (e) { /* unsupported */ }
+  if (audioSessionPrimed) return;
+  try {
+    if (!silentAudioEl) {
+      silentAudioEl = document.createElement("audio");
+      silentAudioEl.src = buildSilentWavDataUri();
+      silentAudioEl.loop = true;        // keep the session in "playback"
+      silentAudioEl.setAttribute("playsinline", "");
+      silentAudioEl.muted = false;      // MUST be unmuted to switch the session
+      silentAudioEl.volume = 1;         // the file is silent, so this is inaudible
+    }
+    const p = silentAudioEl.play();
+    if (p && p.then) p.then(() => { audioSessionPrimed = true; }).catch(() => {});
+    else audioSessionPrimed = true;
+  } catch (e) { /* ignore on unsupported engines */ }
+}
+
+// iOS uses "interrupted" (not "suspended") when a WKWebView is backgrounded.
+function needsResume(ctx) {
+  return ctx && (ctx.state === "suspended" || ctx.state === "interrupted");
+}
+
+let audioHintTimer = null;
+// Reuses the sample-status pill in the topbar to surface an audio-blocked hint.
+function flashAudioHint(msg) {
+  if (!els.sampleStatus) return;
+  els.sampleStatus.textContent = "⚠ " + msg;
+  els.sampleStatus.dataset.state = "blocked";
+  clearTimeout(audioHintTimer);
+  audioHintTimer = setTimeout(updateSampleStatus, 4000);
+}
+
+// On iOS resume() often resolves while the context stays paused, so verify the
+// context actually advanced and, if not, retry the unlock and hint the user.
+function verifyAudioStarted() {
+  setTimeout(() => {
+    if (!state.isPlaying || !state.audio) return;
+    if (state.audio.state !== "running") {
+      primeAudioSession();
+      const r = state.audio.resume();
+      if (r && r.catch) r.catch(() => {});
+      flashAudioHint("Tap Play to enable sound");
+    }
+  }, 450);
+}
 
 function initAudio() {
   if (state.audio) return;
@@ -2277,10 +2369,14 @@ function swingOffset(localStep, secondsPerStep, swing) {
 
 function startPlayback() {
   if (!state.pattern) generate();
+  // Unlock the iOS / in-app-WebView audio session — must run in the gesture,
+  // BEFORE resume(), or sound stays muted under the hardware silent switch.
+  primeAudioSession();
   initAudio();
   // resume() MUST be called synchronously inside the user-gesture handler.
-  // This is the critical requirement for iOS Safari.
-  state.audio.resume();
+  // This is the critical requirement for iOS Safari / WKWebView.
+  const resumed = state.audio.resume();
+  if (resumed && resumed.catch) resumed.catch(() => {});
   applyMixer();
   state.isPlaying = true;
   els.playIcon.textContent = "Stop";
@@ -2290,6 +2386,7 @@ function startPlayback() {
   state.timerId = setInterval(scheduler, SCHEDULER_INTERVAL);
   scheduler();
   state.rafId = requestAnimationFrame(drawPlayhead);
+  verifyAudioStarted();
 }
 
 function stopPlayback() {
@@ -2306,9 +2403,11 @@ function stopPlayback() {
 // using precise AudioContext clock times instead of setTimeout drift.
 function scheduler() {
   if (!state.isPlaying || !state.pattern) return;
-  // Auto-resume if the AudioContext was suspended (common on Android after tab switch).
-  if (state.audio && state.audio.state === "suspended") {
-    state.audio.resume();
+  // Auto-resume if the AudioContext was suspended/interrupted (Android tab
+  // switch, iOS WKWebView backgrounding).
+  if (needsResume(state.audio)) {
+    const r = state.audio.resume();
+    if (r && r.catch) r.catch(() => {});
     return; // reschedule on next interval tick once context is running
   }
   const pattern = state.pattern;
@@ -2384,15 +2483,21 @@ function getPresets() {
   }
 }
 
+// Returns false if the write fails (private-mode/quota-exceeded WebViews throw).
 function setPresets(presets) {
-  localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+  try {
+    localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
 
 function refreshPresetOptions(selected = "") {
   const presets = getPresets();
   const names = Object.keys(presets).sort((a, b) => a.localeCompare(b));
   els.presetSelect.innerHTML = `<option value="">Saved patterns…</option>` +
-    names.map((name) => `<option value="${name}">${name}</option>`).join("");
+    names.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
   els.presetSelect.value = selected;
 }
 
@@ -2400,7 +2505,7 @@ function snapshot() {
   return {
     settings: getSettings(),
     masterVolume: state.masterVolume,
-    mixer: structuredClone(state.mixer),
+    mixer: deepClone(state.mixer),
     events: state.pattern ? state.pattern.events.map((e) => ({ ...e })) : []
   };
 }
@@ -2410,7 +2515,10 @@ function savePreset() {
   if (!name) return;
   const presets = getPresets();
   presets[name] = snapshot();
-  setPresets(presets);
+  if (!setPresets(presets)) {
+    window.alert("Couldn't save — browser storage is full or unavailable (private mode?).");
+    return;
+  }
   refreshPresetOptions(name);
 }
 
@@ -2433,7 +2541,7 @@ function applySnapshot(snap, { keepEvents = true } = {}) {
     els.masterVol.value = Math.round(snap.masterVolume * 100);
   }
   if (snap.mixer) {
-    state.mixer = { ...state.mixer, ...structuredClone(snap.mixer) };
+    state.mixer = { ...state.mixer, ...deepClone(snap.mixer) };
   }
   buildMixer();
   updateOutputs();
@@ -2450,7 +2558,12 @@ function loadPreset() {
   const name = els.presetSelect.value;
   if (!name) return;
   const preset = getPresets()[name];
-  if (preset) applySnapshot(preset);
+  if (!preset) return;
+  try {
+    applySnapshot(preset);
+  } catch (err) {
+    window.alert("Couldn't load this pattern — it may be from an incompatible version.");
+  }
 }
 
 function deletePreset() {
@@ -2574,7 +2687,8 @@ async function exportWAV() {
   const sampleRate = 44100;
   const secondsPerStep = 60 / p.settings.tempo / 4;
   const duration = p.totalSteps * secondsPerStep + 0.6;
-  const ctx = new OfflineAudioContext(2, Math.ceil(duration * sampleRate), sampleRate);
+  const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const ctx = new OfflineCtx(2, Math.ceil(duration * sampleRate), sampleRate);
   const master = ctx.createGain();
   master.gain.value = state.masterVolume;
   master.connect(ctx.destination);
@@ -2689,15 +2803,27 @@ function installHandlers() {
     if (!cell || !cell.dataset.track) return;
     toggleStep(cell.dataset.track, Number(cell.dataset.step));
   });
-  // Mobile: unlock AudioContext on any touch (covers very old iOS and Android Chrome quirks).
-  document.addEventListener("touchstart", () => {
-    if (state.audio && state.audio.state === "suspended") state.audio.resume();
-  }, { passive: true, once: false });
+  // Mobile/in-app WebView: on ANY early user gesture, prime the iOS audio
+  // session and resume the context. touchstart alone wasn't enough — it never
+  // flipped the mute-switch-gated session, and pointer/click/key users were
+  // uncovered. primeAudioSession() is idempotent so repeated firing is cheap.
+  const firstGesture = () => {
+    primeAudioSession();
+    if (needsResume(state.audio)) {
+      const r = state.audio.resume();
+      if (r && r.catch) r.catch(() => {});
+    }
+  };
+  ["pointerdown", "touchstart", "mousedown", "keydown"].forEach((ev) => {
+    document.addEventListener(ev, firstGesture, { passive: true });
+  });
 
-  // Resume AudioContext when the tab regains visibility (e.g. user switches back on Android).
+  // Resume AudioContext when the tab/app regains visibility (Android tab
+  // switch, iOS unlock/foreground).
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && state.audio && state.audio.state === "suspended") {
-      state.audio.resume();
+    if (!document.hidden && needsResume(state.audio)) {
+      const r = state.audio.resume();
+      if (r && r.catch) r.catch(() => {});
     }
   });
 
