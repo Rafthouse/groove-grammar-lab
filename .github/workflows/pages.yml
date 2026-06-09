@@ -21,12 +21,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Generate web assets (icons, OG image)
         run: |
@@ -36,17 +36,18 @@ jobs:
       - name: Assemble static site into _site/
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js manifest.json .nojekyll _site/
+          cp index.html styles.css app.js rhythm-packs.js manifest.json .nojekyll _site/
           cp favicon-32.png favicon-192.png favicon-512.png og-image.png _site/
+          cp -R sounds _site/sounds
 
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload static site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
