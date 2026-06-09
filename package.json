@@ -14,12 +14,14 @@
     "tauri:icons": "npm run generate-icon && node node_modules/@tauri-apps/cli/tauri.js icon resources/icon.png",
     "tauri:build": "node node_modules/@tauri-apps/cli/tauri.js build",
     "web:assets": "node scripts/generate-web-assets.mjs",
-    "sounds:generate": "node scripts/generate-sounds.mjs"
+    "sounds:generate": "node scripts/generate-sounds.mjs",
+    "og:image": "node scripts/generate-og-image.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
     "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "sharp": "^0.34.5"
   },
   "build": {
     "appId": "ua.groovegrammarlab.app",
@@ -27,7 +29,9 @@
     "copyright": "Copyright © 2026",
     "asar": true,
     "compression": "maximum",
-    "electronLanguages": ["en-US"],
+    "electronLanguages": [
+      "en-US"
+    ],
     "directories": {
       "output": "release",
       "buildResources": "resources"
@@ -47,11 +51,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
