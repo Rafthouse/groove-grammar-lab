@@ -138,17 +138,17 @@ const STYLE_LIBRARY = {
     tempo: [92, 122],
     swing: 16,
     seed: {
-      kick: [0, 6, 10],
-      snare: [4, 12],
-      closedHat: [0, 2, 4, 6, 8, 10, 12, 14],
-      openHat: [7, 15],
+      kick: [0, 6],
+      snare: [],
+      closedHat: [0, 2, 3, 6, 8, 10, 11, 14],
+      openHat: [],
       rim: [0, 3, 6, 10, 12],
       tom: [],
-      perc: [2, 5, 8, 11, 14],
+      perc: [3, 6, 7, 11, 14, 15],
       shaker: [1, 3, 5, 7, 9, 11, 13, 15]
     },
     principles: [
-      ["Pulse", "The grid keeps clear quarter-note anchors while percussion answers around them."],
+      ["No backbeat", "Afro-Cuban kit playing has no rock 2-and-4 snare; the clave and cáscara carry the time instead."],
       ["Clave", "The rim line acts as a reference pattern, so other layers can create syncopation without losing orientation."],
       ["Conversation", "Kick and percussion alternate roles: one grounds the body, the other supplies response."]
     ]
@@ -161,13 +161,13 @@ const STYLE_LIBRARY = {
     tempo: [94, 128],
     swing: 12,
     seed: {
-      kick: [0, 10],
-      snare: [4, 12],
-      closedHat: [0, 2, 4, 6, 8, 10, 12, 14],
-      openHat: [15],
+      kick: [6, 12],
+      snare: [],
+      closedHat: [0, 2, 3, 6, 8, 10, 11, 14],
+      openHat: [],
       rim: [0, 3, 6, 10, 12],
       tom: [],
-      perc: [1, 4, 7, 9, 11, 14],
+      perc: [3, 6, 7, 11, 14, 15],
       shaker: [1, 3, 5, 7, 9, 11, 13, 15]
     },
     principles: [
@@ -298,15 +298,16 @@ const STYLE_LIBRARY = {
     tags: ["shuffle", "swing", "syncopation", "ghost-notes", "call-response", "medium-tempo"],
     tempo: [92, 168],
     swing: 42,
+    swingUnit: "8",
     seed: {
       kick: [0, 8],
-      snare: [4, 12],
-      closedHat: [0, 3, 6, 8, 11, 14],
-      openHat: [6, 14],
-      rim: [2, 7, 10, 15],
+      snare: [],
+      closedHat: [0, 4, 6, 8, 12, 14],
+      openHat: [],
+      rim: [12],
       tom: [],
-      perc: [5, 13],
-      shaker: [0, 3, 6, 8, 11, 14]
+      perc: [],
+      shaker: []
     },
     principles: [
       ["Ride pulse", "The subdivision leans toward triplets, so not every eighth is equal."],
@@ -677,16 +678,17 @@ Object.assign(STYLE_LIBRARY, {
     subtitle: "Swinging triple pulse, ride-like subdivision, comped accents",
     tags: ["triple", "swing", "syncopation", "ghost-notes", "jazz", "medium-tempo"],
     tempo: [104, 168],
-    swing: 34,
+    swing: 44,
+    swingUnit: "8",
     seed: {
-      kick: [0, 8],
-      snare: [4, 10],
-      closedHat: [0, 3, 6, 8, 11],
-      openHat: [6],
-      rim: [2, 7, 10],
+      kick: [0],
+      snare: [],
+      closedHat: [0, 4, 6, 8, 10],
+      openHat: [],
+      rim: [4],
       tom: [],
-      perc: [5, 9],
-      shaker: [0, 3, 6, 8, 11]
+      perc: [],
+      shaker: []
     },
     principles: [
       ["Triple swing", "The bar is still 3/4, but subdivision leans into triplet phrasing."],
@@ -725,16 +727,17 @@ Object.assign(STYLE_LIBRARY, {
     subtitle: "Take Five-like 3+2 grouping with a swinging ride surface",
     tags: ["five", "jazz", "swing", "accent-cycle", "odd-meter", "medium-tempo"],
     tempo: [92, 138],
-    swing: 24,
+    swing: 42,
+    swingUnit: "8",
     seed: {
       kick: [0, 12],
-      snare: [8, 16],
-      closedHat: [0, 3, 6, 8, 11, 14, 16, 19],
-      openHat: [6, 16],
-      rim: [0, 8, 12, 16],
+      snare: [],
+      closedHat: [0, 4, 6, 8, 12, 14, 16, 18],
+      openHat: [],
+      rim: [0, 12],
       tom: [],
-      perc: [5, 10, 15, 19],
-      shaker: [0, 3, 6, 8, 11, 14, 16, 19]
+      perc: [],
+      shaker: []
     },
     principles: [
       ["3+2 map", "The bar feels like a longer group followed by a shorter answer."],
@@ -1280,13 +1283,13 @@ Object.assign(STYLE_LIBRARY, {
     swing: 10,
     seed: {
       kick: [0, 12],
-      snare: [6, 18],
-      closedHat: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22],
-      openHat: [10, 22],
-      rim: [0, 3, 6, 10, 12, 15, 18, 22],
+      snare: [],
+      closedHat: [],
+      openHat: [],
+      rim: [0, 4, 6, 10, 12, 16, 20],
       tom: [],
-      perc: [2, 5, 8, 11, 14, 17, 20, 23],
-      shaker: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23]
+      perc: [3, 6, 9, 14, 18, 21],
+      shaker: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
     },
     principles: [
       ["Bell cycle", "The rim track gives a 12/8 reference pattern."],
@@ -1456,6 +1459,7 @@ const els = {
   playIcon: document.getElementById("playIcon"),
   masterVol: document.getElementById("masterRange"),
   sampleStatus: document.getElementById("sampleStatus"),
+  themeToggle: document.getElementById("themeToggle"),
   mixer: document.getElementById("mixer"),
   presetSelect: document.getElementById("presetSelect"),
   save: document.getElementById("saveButton"),
@@ -1504,6 +1508,29 @@ function getMeterInfo(meterKey) {
   return METER_LIBRARY[meterKey] || METER_LIBRARY["4-4"];
 }
 
+/* ---------- Theme (dark neon / light greenish-beige) ---------- */
+
+const THEME_KEY = "ggl.theme";
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  if (els.themeToggle) {
+    // Show the icon of the theme the user can switch TO.
+    els.themeToggle.textContent = theme === "light" ? "☾" : "☀";
+    els.themeToggle.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+  }
+}
+
+function initTheme() {
+  applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+
 function applyStyleDefaults() {
   const style = STYLE_LIBRARY[els.style.value];
   if (!style) return;
@@ -1514,6 +1541,7 @@ function applyStyleDefaults() {
 
 function getSettings() {
   const meter = getMeterInfo(els.meter.value);
+  const style = STYLE_LIBRARY[els.style.value];
   return {
     style: els.style.value,
     bars: Number(els.bars.value),
@@ -1524,6 +1552,7 @@ function getSettings() {
     complexity: Number(els.complexity.value),
     density: Number(els.density.value),
     swing: Number(els.swing.value),
+    swingUnit: (style && style.swingUnit) || "8",
     human: Number(els.human.value),
     layers: Object.fromEntries(Object.entries(els.toggles).map(([key, input]) => [key, input.checked]))
   };
@@ -2270,9 +2299,18 @@ function createVoice(ctx, sound, t, velocity, dest) {
   osc.stop(t + 0.14);
 }
 
-// Swing offset for a 16th-note step, scaled so max slider approaches a triplet feel.
-function swingOffset(localStep, secondsPerStep, swing) {
-  return localStep % 2 === 1 ? secondsPerStep * (swing / 100) * 0.55 : 0;
+// Swing offset for a grid step. swingUnit "8" (default) swings the eighth-note
+// off-beats — the musically standard swing / jazz triplet feel where the "&" of
+// each beat is pushed toward the 2/3 triplet position. swingUnit "16" swings the
+// sixteenth-note off-beats instead (skippy garage / amapiano shuffle).
+// A swing of 60 (slider max) approaches a full triplet placement.
+function swingOffset(localStep, secondsPerStep, swing, swingUnit) {
+  if (swing <= 0) return 0;
+  const sixteenth = swingUnit === "16";
+  const isOffbeat = sixteenth ? localStep % 2 === 1 : localStep % 4 === 2;
+  if (!isOffbeat) return 0;
+  const stepsPerPair = sixteenth ? 2 : 4; // grid steps between consecutive on-beats
+  return (stepsPerPair / 6) * (swing / 60) * secondsPerStep;
 }
 
 function startPlayback() {
@@ -2324,7 +2362,7 @@ function scheduler() {
 function scheduleStepAt(step, time, secondsPerStep) {
   const pattern = state.pattern;
   const local = step % pattern.settings.stepsPerBar;
-  const swing = swingOffset(local, secondsPerStep, pattern.settings.swing);
+  const swing = swingOffset(local, secondsPerStep, pattern.settings.swing, pattern.settings.swingUnit);
   pattern.events.forEach((item) => {
     if (item.step !== step) return;
     const track = TRACKS.find((entry) => entry.id === item.track);
@@ -2592,7 +2630,7 @@ async function exportWAV() {
   p.events.forEach((item) => {
     const track = TRACKS.find((entry) => entry.id === item.track);
     const local = item.step % p.settings.stepsPerBar;
-    const time = item.step * secondsPerStep + swingOffset(local, secondsPerStep, p.settings.swing);
+    const time = item.step * secondsPerStep + swingOffset(local, secondsPerStep, p.settings.swing, p.settings.swingUnit);
     const vel = item.velocity * (item.ghost ? 0.55 : 1);
     const dest = gains[item.track];
     const buf = offlineSamples[track.sound];
@@ -2728,6 +2766,7 @@ function installHandlers() {
     applyMixer();
   });
 
+  els.themeToggle.addEventListener("click", toggleTheme);
   els.save.addEventListener("click", savePreset);
   els.load.addEventListener("click", loadPreset);
   els.delete.addEventListener("click", deletePreset);
@@ -2737,6 +2776,7 @@ function installHandlers() {
   els.presetSelect.addEventListener("change", loadPreset);
 }
 
+initTheme();
 populateStyleOptions();
 buildMixer();
 installHandlers();

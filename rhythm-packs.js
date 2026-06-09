@@ -259,6 +259,7 @@
       tags: ["log-drum", "shuffle", "house", "syncopation", "slow"],
       tempo: [108, 118],
       swing: 22,
+      swingUnit: "16",
       seed: {
         kick: [0, 4, 8, 12],
         snare: [],
@@ -285,6 +286,7 @@
       tags: ["2-step", "swing", "syncopation", "dance", "shuffle"],
       tempo: [128, 138],
       swing: 32,
+      swingUnit: "16",
       seed: {
         kick: [0, 10],
         snare: [4, 12],
