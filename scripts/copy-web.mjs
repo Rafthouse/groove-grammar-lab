@@ -13,7 +13,22 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const out = resolve(root, "dist-web");
 
-const FILES = ["index.html", "styles.css", "app.js", "rhythm-packs.js"];
+const FILES = [
+  "index.html",
+  "styles.css",
+  "app.js",
+  "rhythm-packs.js",
+  "manifest.json",
+  "robots.txt",
+  "sitemap.xml",
+  "favicon-32.png",
+  "favicon-192.png",
+  "favicon-512.png",
+  "apple-touch-icon.png",
+  "og-image.png",
+  "twitter-card.png",
+  "square-preview.png"
+];
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });

@@ -36,8 +36,8 @@ jobs:
       - name: Assemble static site into _site/
         run: |
           mkdir -p _site
-          cp index.html styles.css app.js rhythm-packs.js manifest.json .nojekyll _site/
-          cp favicon-32.png favicon-192.png favicon-512.png og-image.png _site/
+          cp index.html styles.css app.js rhythm-packs.js manifest.json robots.txt sitemap.xml .nojekyll _site/
+          cp favicon-32.png favicon-192.png favicon-512.png apple-touch-icon.png og-image.png twitter-card.png square-preview.png _site/
           cp -R sounds _site/sounds
 
       - name: Configure GitHub Pages

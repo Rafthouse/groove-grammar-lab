@@ -1,14 +1,17 @@
 {
   "name": "Groove Grammar Lab",
   "short_name": "GrooveLab",
-  "description": "Educational drum machine for phrase-aware rhythm study",
-  "start_url": "./",
+  "description": "Educational drum machine for phrase-aware rhythm study: 70+ styles, 12 meters, mixer, MIDI/WAV export, and rhythm affinity map.",
+  "start_url": "https://rafthouse.github.io/groove-grammar-lab/",
+  "scope": "https://rafthouse.github.io/groove-grammar-lab/",
+  "id": "https://rafthouse.github.io/groove-grammar-lab/",
   "display": "standalone",
-  "background_color": "#101214",
+  "background_color": "#f2ead7",
   "theme_color": "#101214",
   "icons": [
-    { "src": "favicon-32.png",  "sizes": "32x32",   "type": "image/png" },
-    { "src": "favicon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "favicon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "https://rafthouse.github.io/groove-grammar-lab/favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "https://rafthouse.github.io/groove-grammar-lab/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "https://rafthouse.github.io/groove-grammar-lab/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "https://rafthouse.github.io/groove-grammar-lab/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
   ]
 }

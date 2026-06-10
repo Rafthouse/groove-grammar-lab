@@ -2109,7 +2109,7 @@ function buildSilentWavDataUri(seconds = 0.2, sampleRate = 8000) {
 function primeAudioSession() {
   try {
     if (navigator.audioSession) navigator.audioSession.type = "playback"; // iOS 17+
-  } catch (e) { /* unsupported */ }
+  } catch (_err) { /* unsupported */ }
   if (audioSessionPrimed) return;
   try {
     if (!silentAudioEl) {
@@ -2123,7 +2123,7 @@ function primeAudioSession() {
     const p = silentAudioEl.play();
     if (p && p.then) p.then(() => { audioSessionPrimed = true; }).catch(() => {});
     else audioSessionPrimed = true;
-  } catch (e) { /* ignore on unsupported engines */ }
+  } catch (_err) { /* ignore on unsupported engines */ }
 }
 
 // iOS uses "interrupted" (not "suspended") when a WKWebView is backgrounded.
@@ -2213,7 +2213,7 @@ function playSample(ctx, sound, time, velocity, dest) {
     try {
       prev.gain.gain.cancelScheduledValues(time);
       prev.gain.gain.setTargetAtTime(0.0001, time, 0.004);
-    } catch (e) { /* source already ended */ }
+    } catch (_err) { /* source already ended */ }
     state.activeChoke[group] = null;
   }
   const src = ctx.createBufferSource();
@@ -2516,7 +2516,7 @@ function refreshMixerButtons() {
 function getPresets() {
   try {
     return JSON.parse(localStorage.getItem(PRESET_KEY) || "{}");
-  } catch (err) {
+  } catch (_err) {
     return {};
   }
 }
@@ -2526,7 +2526,7 @@ function setPresets(presets) {
   try {
     localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
     return true;
-  } catch (err) {
+  } catch (_err) {
     return false;
   }
 }
@@ -2599,7 +2599,7 @@ function loadPreset() {
   if (!preset) return;
   try {
     applySnapshot(preset);
-  } catch (err) {
+  } catch (_err) {
     window.alert("Couldn't load this pattern — it may be from an incompatible version.");
   }
 }
@@ -2636,7 +2636,7 @@ function applyShareHash() {
     const json = decodeURIComponent(escape(atob(location.hash.slice(3))));
     applySnapshot(JSON.parse(json), { keepEvents: false });
     return true;
-  } catch (err) {
+  } catch (_err) {
     return false;
   }
 }

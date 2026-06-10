@@ -15,13 +15,23 @@
     "tauri:build": "node node_modules/@tauri-apps/cli/tauri.js build",
     "web:assets": "node scripts/generate-web-assets.mjs",
     "sounds:generate": "node scripts/generate-sounds.mjs",
-    "og:image": "node scripts/generate-og-image.mjs"
+    "og:image": "node scripts/generate-og-image.mjs",
+    "build": "npm run web:assets && node scripts/copy-web.mjs",
+    "lint": "eslint .",
+    "typecheck": "node --check app.js && node --check rhythm-packs.js && node --check electron/main.js && node --check eslint.config.mjs",
+    "test": "node scripts/validate-styles.mjs && node scripts/smoke-test.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@tauri-apps/cli": "^2.1.0",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
-    "sharp": "^0.34.5"
+    "eslint": "^9.39.1",
+    "jsdom": "^24.1.3",
+    "lighthouse": "^12.2.2",
+    "playwright": "^1.60.0",
+    "sharp": "^0.34.5",
+    "vite": "^5.4.11"
   },
   "build": {
     "appId": "ua.groovegrammarlab.app",
